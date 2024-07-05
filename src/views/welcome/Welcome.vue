@@ -71,12 +71,7 @@ export default {
       const startPage = Math.max(1, this.currentPage - Math.floor(this.maxVisiblePages / 2))
       const endPage = Math.min(this.totalPages, startPage + this.maxVisiblePages - 1)
       return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index)
-    },
-    pagedData() {
-      // Calcula los datos a mostrar en la página actual
-      const startIndex = (this.currentPage - 1) * this.pageSize
-      return this.data.slice(startIndex, startIndex + this.pageSize)
-    },
+    }
   },
   methods: {
     prevPage() {

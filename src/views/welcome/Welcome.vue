@@ -19,6 +19,7 @@ import {
   CFormInput,
   CButton,
   CPagination,
+  CPaginationItem,
 } from '@coreui/vue'
 export default {
   components: {
@@ -37,6 +38,7 @@ export default {
     CButton,
     CPagination,
     CIcon,
+    CPaginationItem,
   },
   data() {
     // Datos iniciales
@@ -45,7 +47,8 @@ export default {
       data: [],
       columns: [],
       currentPage: 1,
-      rowsPerPage: 20,
+      rowsPerPage: 10,
+      maxVisiblePages: 3,
       isProcessingComplete: false,
       buttonState: {
         process: { text: 'Procesar Archivo', icon: cilSpreadsheet, color: 'info', disabled: true },
@@ -63,8 +66,31 @@ export default {
       const end = this.currentPage * this.rowsPerPage
       return this.data.slice(start, end)
     },
+    visiblePages() {
+      // Calcula los números de página visibles en el centro
+      const startPage = Math.max(1, this.currentPage - Math.floor(this.maxVisiblePages / 2))
+      const endPage = Math.min(this.totalPages, startPage + this.maxVisiblePages - 1)
+      return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index)
+    },
+    pagedData() {
+      // Calcula los datos a mostrar en la página actual
+      const startIndex = (this.currentPage - 1) * this.pageSize
+      return this.data.slice(startIndex, startIndex + this.pageSize)
+    },
   },
   methods: {
+    prevPage() {
+      // Cambia a la página anterior
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+    nextPage() {
+      // Cambia a la página siguiente
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
     // Obtención de archivo
     handleFileUpload(event) {
       const uploadedFile = event.target.files[0]
@@ -141,8 +167,8 @@ export default {
       if (serial === null || serial === undefined || serial === '') {
         return '-'
       }
-      const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
-      return date.toLocaleDateString(); // Formateo de fecha
+      const date = new Date(Math.round((serial - 25569) * 86400 * 1000))
+      return date.toLocaleDateString() // Formateo de fecha
     },
     sendData() {
       // Instancia de Axios Mock Adapter
@@ -152,17 +178,17 @@ export default {
       mock.onPost('https://pruebaSubida/Excel').reply(200, {})
 
       // Validamos la data
-      const modifiedData = this.data.map(obj => {
+      const modifiedData = this.data.map((obj) => {
         // Recorrer cada propiedad del objeto
-        Object.keys(obj).forEach(key => {
+        Object.keys(obj).forEach((key) => {
           // Verificar si el valor es '-' o está vacío, y cambiarlo a null
           if (obj[key] === '-' || obj[key] === '') {
-            obj[key] = null;
+            obj[key] = null
           }
-        });
-        return obj;
-      });
-      
+        })
+        return obj
+      })
+
       // Simulación del envío de datos usando axios
       axios
         .post('https://pruebaSubida/Excel', this.data)
@@ -294,15 +320,34 @@ export default {
                   </CTableRow>
                 </CTableBody>
               </CTable>
-              <CPagination
-                :pages="totalPages"
-                :current-page="currentPage"
-                @update:currentPage="updatePage"
-                align="end"
-              />
-              <CButton color="success" class="mt-4" @click="sendData"> Enviar Datos </CButton>
+              <CButton color="success" @click="sendData">
+                Enviar Datos
+              </CButton>
             </div>
           </CCardBody>
+          <CCardFooter class="d-flex justify-content-between align-items-center">
+            <CPagination aria-label="Page navigation">
+              <CPaginationItem
+                @click="prevPage"
+                :disabled="currentPage === 1"
+                aria-label="Previous"
+              >
+                <span aria-hidden="true">&laquo;</span>
+              </CPaginationItem>
+              <template v-for="page in visiblePages" :key="page">
+                <CPaginationItem @click="changePage(page)" :active="currentPage === page">
+                  {{ page }}
+                </CPaginationItem>
+              </template>
+              <CPaginationItem
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                aria-label="Next"
+              >
+                <span aria-hidden="true">&raquo;</span>
+              </CPaginationItem>
+            </CPagination>
+          </CCardFooter>
         </CCard>
       </CCol>
     </CRow>
